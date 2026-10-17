@@ -3,6 +3,8 @@
 [![Tests](https://github.com/wjc2821296948/litellm-namespace-tool-filter/actions/workflows/tests.yml/badge.svg)](https://github.com/wjc2821296948/litellm-namespace-tool-filter/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
+[English](README.en.md) | [中文](README.md)
+
 A small LiteLLM pre-call hook that removes unsupported top-level `namespace` tools while preserving standard `function` tools.
 
 It is useful when a client such as OpenAI Codex sends newer grouped tool definitions, but the upstream OpenAI-compatible provider accepts only classic function tools.
