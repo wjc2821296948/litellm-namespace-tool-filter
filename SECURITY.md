@@ -1,15 +1,52 @@
-# Security
+# 安全策略
 
-## Secrets
+[English](SECURITY_en.md) | [中文](SECURITY.md)
 
-Do not commit production LiteLLM configuration files if they contain secrets.
+## 支持的版本
 
-Keep provider API keys, LiteLLM master keys, database credentials, and other tokens in environment variables or a dedicated secret manager.
+目前仅为 `main` 分支上的最新版本提供安全修复。
 
-The files under `examples/` intentionally reference environment variables instead of real credentials.
+| 版本 | 支持状态 |
+|---|---|
+| `main` | 支持 |
+| 旧版本 | 不再支持 |
 
-## Reporting a vulnerability
+## 报告安全漏洞
 
-If you find a security issue in this repository, please avoid posting credentials, tokens, private request payloads, or other sensitive data in a public issue.
+请**不要**在公开 Issue、Pull Request 或讨论中披露安全漏洞、凭证、Provider Token、私有请求内容或生产配置。
 
-Open an issue containing only the minimum non-sensitive reproduction details needed to describe the problem.
+推荐使用 GitHub 的私密漏洞报告：
+
+1. 打开仓库的 **Security** 标签页；
+2. 选择 **Report a vulnerability**；
+3. 提交复现和评估所需的最少信息。
+
+如果私密漏洞报告不可用，可联系维护者：`admin@lrate.top`。
+
+## 敏感数据
+
+本项目会在 LiteLLM 请求转发前修改工具定义，因此漏洞报告可能涉及请求正文或 Provider 配置。分享日志或示例前请：
+
+- 删除 API Key 和 Bearer Token；
+- 删除 LiteLLM master key；
+- 删除数据库凭证；
+- 在不影响复现时删除内部域名和内网地址；
+- 将请求内容缩减到能够安全复现问题的最小范围。
+
+## 安全约束
+
+过滤器应当：
+
+- 不记录请求正文或密钥；
+- 保留与目标问题无关的工具定义；
+- 不执行工具内容；
+- 不主动下载或执行远程代码；
+- 只做兼容性所需的最小请求修改。
+
+## 漏洞公开
+
+在公开披露前，请给维护者合理时间完成调查、修复和发布。
+
+## 致谢
+
+感谢所有负责任地报告安全问题的贡献者。
