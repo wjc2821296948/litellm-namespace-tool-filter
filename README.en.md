@@ -9,6 +9,31 @@ A small LiteLLM pre-call hook that removes unsupported top-level `namespace` too
 
 It is useful when a client such as OpenAI Codex sends newer grouped tool definitions, but the upstream OpenAI-compatible provider accepts only classic function tools.
 
+## Codex with LiteLLM and NVIDIA NIM
+
+This project was originally created to solve a tool-schema compatibility problem in the **OpenAI Codex -> LiteLLM -> NVIDIA NIM** request path.
+
+When Codex uses LiteLLM as a custom OpenAI-compatible endpoint and LiteLLM forwards the model request to NVIDIA NIM / vLLM, Codex may send grouped tools with `type: "namespace"`, such as `multi_agent_v1` or `mcp__node_repl`. Some NVIDIA NIM / vLLM endpoints accept only classic `type: "function"` tools, so the forwarded request can fail with errors such as:
+
+```text
+litellm.BadRequestError: Nvidia_nimException
+Input should be 'function'
+Field required: function
+```
+
+With this pre-call hook enabled, LiteLLM removes incompatible namespace tools before the request reaches NVIDIA NIM while preserving ordinary function tools. This allows Codex to continue using the upstream model instead of failing the entire request.
+
+Typical path:
+
+```text
+Codex
+  -> LiteLLM /v1/responses
+  -> LiteLLM conversion and forwarding
+  -> NVIDIA NIM / vLLM /v1/chat/completions
+```
+
+If Codex works through LiteLLM but NVIDIA NIM returns `Nvidia_nimException`, `Input should be 'function'`, or `input: 'namespace'`, this filter directly targets that compatibility issue.
+
 ## The problem
 
 A request may contain tools like:
