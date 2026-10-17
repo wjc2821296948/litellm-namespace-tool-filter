@@ -34,7 +34,7 @@ This Code of Conduct applies within all project spaces and whenever an individua
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior should be reported privately to the project maintainers.
+Instances of abusive, harassing, or otherwise unacceptable behavior should be reported privately to the project maintainers at `admin@lrate.top`.
 
 All complaints will be reviewed promptly and fairly. Maintainers will respect the privacy and security of reporters.
 
