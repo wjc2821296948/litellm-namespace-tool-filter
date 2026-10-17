@@ -3,13 +3,15 @@
 [![Tests](https://github.com/wjc2821296948/litellm-namespace-tool-filter/actions/workflows/tests.yml/badge.svg)](https://github.com/wjc2821296948/litellm-namespace-tool-filter/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-A small LiteLLM pre-call hook that removes unsupported top-level `namespace` tools while preserving standard `function` tools.
+[English](README.en.md) | [中文](README.md)
 
-It is useful when a client such as OpenAI Codex sends newer grouped tool definitions, but the upstream OpenAI-compatible provider accepts only classic function tools.
+一个轻量的 LiteLLM pre-call hook：过滤上游不支持的顶层 `namespace` 工具，同时保留标准 `function` 工具。
 
-## The problem
+它适用于 OpenAI Codex 这类客户端已经开始发送分组工具定义，而上游 OpenAI 兼容提供商仍只接受传统 function tools 的场景。
 
-A request may contain tools like:
+## 问题背景
+
+客户端请求可能包含：
 
 ```json
 {
@@ -32,14 +34,14 @@ A request may contain tools like:
 }
 ```
 
-Strict upstreams such as some NVIDIA NIM / vLLM deployments can reject the second entry before the model is called:
+部分严格校验工具结构的 NVIDIA NIM / vLLM 部署会在模型实际收到请求之前直接拒绝第二项：
 
 ```text
 Input should be 'function'
 input: 'namespace'
 ```
 
-Typical request path:
+典型调用链：
 
 ```text
 OpenAI Codex
@@ -53,21 +55,21 @@ NVIDIA NIM / vLLM
     X 400 validation error
 ```
 
-This hook changes only the top-level tool list:
+这个 hook 只处理顶层工具列表：
 
 ```text
-function     -> preserved
-namespace    -> removed
-other values -> preserved
+function     -> 保留
+namespace    -> 删除
+其他类型     -> 保留
 ```
 
-If all tools are removed, the hook also removes `tool_choice` so LiteLLM does not forward a tool selection without any tools.
+如果过滤后一个工具都不剩，会同时移除 `tool_choice`，避免向上游发送“指定工具但没有 tools”的请求。
 
-## Installation
+## 安装
 
-Copy `filter_namespace_tools.py` somewhere LiteLLM can import it.
+把 `filter_namespace_tools.py` 放到 LiteLLM 能导入的位置。
 
-For a Docker deployment, mount both the hook and your LiteLLM config:
+Docker 部署可以同时挂载 hook 与 LiteLLM 配置：
 
 ```yaml
 services:
@@ -80,7 +82,7 @@ services:
       - "--config=/app/config.yaml"
 ```
 
-Then enable the callback in `config.yaml`:
+然后在 `config.yaml` 中启用 callback：
 
 ```yaml
 litellm_settings:
@@ -89,11 +91,11 @@ litellm_settings:
     - filter_namespace_tools.namespace_tool_filter
 ```
 
-Restart LiteLLM after changing the configuration.
+修改后重启 LiteLLM。
 
-A complete example is available in the [examples](examples/) directory.
+完整示例见 [examples](examples/) 目录。
 
-## Example with NVIDIA NIM
+## NVIDIA NIM 示例
 
 ```yaml
 model_list:
@@ -109,17 +111,17 @@ litellm_settings:
     - filter_namespace_tools.namespace_tool_filter
 ```
 
-Store the API key in an environment variable instead of committing it:
+API Key 建议通过环境变量提供，不要直接提交到仓库：
 
 ```bash
 export NVIDIA_API_KEY="..."
 ```
 
-## What is filtered?
+## 会过滤哪些内容？
 
-The filter does **not** disable tool calling globally. Standard function tools remain available.
+这个过滤器**不会全局禁用 tool calling**。普通 function tools 仍然会被保留。
 
-It removes only top-level objects whose schema contains:
+它只删除顶层结构为：
 
 ```json
 {
@@ -127,48 +129,53 @@ It removes only top-level objects whose schema contains:
 }
 ```
 
-In current Codex builds, examples can include grouped tool namespaces such as:
+的工具对象。
 
-- `multi_agent_v1` — sub-agent management tools such as spawning, messaging, waiting for, resuming, and closing agents.
-- `mcp__node_repl` — grouped JavaScript / Node REPL tools.
+在当前 Codex 构建中，常见例子包括：
 
-Those grouped capabilities are unavailable to the upstream model after filtering, while normal top-level function tools can still be used.
+- `multi_agent_v1`：子 Agent 管理工具组，例如创建、发送消息、等待、恢复和关闭 Agent。
+- `mcp__node_repl`：JavaScript / Node REPL 工具组。
 
-## Important limitation
+这些 namespace 被过滤后，上游模型暂时无法使用对应的分组能力，但标准顶层 function tools 仍可正常使用。
 
-This project is a compatibility filter, not a namespace-to-function translator.
+## 重要限制
 
-It deliberately **drops** unsupported namespace groups. It does not flatten nested functions and it does not translate tool calls back into the namespace format expected by the client.
+本项目是**兼容性过滤器**，不是 namespace-to-function 转换器。
 
-A future compatibility layer could preserve those capabilities by implementing bidirectional namespace flattening and tool-call remapping, but that requires more than a request-side filter.
+它会主动丢弃不兼容的 namespace 工具组，不会：
 
-## Scope
+- 把 namespace 内的函数展开成独立 function；
+- 把上游的 tool call 再映射回客户端期望的 namespace 调用格式。
 
-This hook is designed for LiteLLM Proxy deployments where:
+未来可以通过“双向 namespace 展平 + tool-call 反向映射”保留这些能力，但这已经超出单纯请求过滤的范围。
 
-1. the client sends `type: "namespace"` tool definitions;
-2. the upstream only accepts `type: "function"` tool definitions; and
-3. dropping grouped namespace tools is preferable to rejecting the entire request.
+## 适用范围
 
-It is not specific to a single model.
+适用于以下 LiteLLM Proxy 场景：
 
-## Testing
+1. 客户端发送 `type: "namespace"` 工具；
+2. 上游只接受 `type: "function"` 工具；
+3. 与其让整个请求直接 400，不如暂时舍弃 namespace 工具组。
 
-The repository includes unit tests for the filtering behavior:
+本项目不绑定某一个模型。
+
+## 测试
+
+仓库包含过滤行为的单元测试：
 
 ```bash
 python -m pip install pytest
 pytest -q
 ```
 
-The tests do not require a running LiteLLM proxy or an NVIDIA API key.
+测试不需要正在运行的 LiteLLM Proxy，也不需要 NVIDIA API Key。
 
-## Security
+## 安全
 
-Do not commit provider API keys, LiteLLM master keys, database credentials, or production `config.yaml` files.
+不要提交 Provider API Key、LiteLLM master key、数据库密码或包含真实密钥的生产 `config.yaml`。
 
-The example configuration uses environment-variable references intentionally.
+示例配置刻意使用环境变量引用。
 
-## License
+## 许可证
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache License 2.0，详见 [LICENSE](LICENSE)。
