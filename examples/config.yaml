@@ -1,0 +1,16 @@
+# Example LiteLLM configuration.
+# Never commit real provider keys or LiteLLM master keys.
+
+model_list:
+  - model_name: gpt-oss-20b
+    litellm_params:
+      model: nvidia_nim/openai/gpt-oss-20b
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY
+    model_info:
+      base_model: openai/gpt-oss-20b
+
+litellm_settings:
+  drop_params: true
+  callbacks:
+    - filter_namespace_tools.namespace_tool_filter

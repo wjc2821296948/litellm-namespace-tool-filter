@@ -1,0 +1,12 @@
+services:
+  litellm:
+    image: docker.litellm.ai/berriai/litellm:main-stable
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ../filter_namespace_tools.py:/app/filter_namespace_tools.py:ro
+    command:
+      - "--config=/app/config.yaml"
+    environment:
+      NVIDIA_API_KEY: "${NVIDIA_API_KEY}"
