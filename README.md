@@ -9,6 +9,31 @@
 
 它适用于 OpenAI Codex 这类客户端已经开始发送分组工具定义，而上游 OpenAI 兼容提供商仍只接受传统 function tools 的场景。
 
+## Codex 接入 LiteLLM + NVIDIA NIM
+
+这个项目最初就是为了解决 **OpenAI Codex → LiteLLM → NVIDIA NIM** 这条调用链中的工具协议兼容问题。
+
+当 Codex 使用 LiteLLM 作为自定义 OpenAI 兼容接口，并由 LiteLLM 将模型请求转发到 NVIDIA NIM / vLLM 时，Codex 可能会发送 `type: "namespace"` 的分组工具，例如 `multi_agent_v1` 或 `mcp__node_repl`。部分 NVIDIA NIM / vLLM 接口只接受传统的 `type: "function"` 工具，因此 LiteLLM 转发请求后会得到类似错误：
+
+```text
+litellm.BadRequestError: Nvidia_nimException
+Input should be 'function'
+Field required: function
+```
+
+启用本项目的 pre-call hook 后，LiteLLM 会在请求发往 NVIDIA NIM 之前过滤这些不兼容的 namespace tools，同时保留普通 function tools，从而让 Codex 能继续正常使用该模型。
+
+典型场景：
+
+```text
+Codex
+  -> LiteLLM /v1/responses
+  -> LiteLLM 转换并转发
+  -> NVIDIA NIM / vLLM /v1/chat/completions
+```
+
+如果你的 Codex 通过 LiteLLM 调用 NVIDIA NIM 时正好遇到 `Nvidia_nimException`、`Input should be 'function'` 或 `input: 'namespace'`，这个过滤器就是针对这一兼容问题的直接解决方案。
+
 ## 问题背景
 
 客户端请求可能包含：
